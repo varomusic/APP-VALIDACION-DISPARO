@@ -1,0 +1,765 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Formato de Validación y Aprobación del Plan de Disparo</title>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+  <style>
+    :root{
+      --bg:#eef2f7;
+      --panel:#ffffff;
+      --ink:#111111;
+      --line:#222222;
+      --btn:#0f172a;
+      --btn2:#334155;
+      --accent:#0f766e;
+      --danger:#991b1b;
+      --yes-bg:#a9d18e;
+      --yes-text:#0b3d0b;
+      --no-bg:#f4a6a6;
+      --no-text:#7a0e0e;
+    }
+
+    *{ box-sizing:border-box; }
+
+    body{
+      margin:0;
+      font-family: Arial, Helvetica, sans-serif;
+      background:var(--bg);
+      color:var(--ink);
+    }
+
+    .shell{
+      max-width:1280px;
+      margin:0 auto;
+      padding:18px;
+    }
+
+    .toolbar{
+      display:flex;
+      flex-wrap:wrap;
+      gap:10px;
+      margin-bottom:18px;
+      background:var(--panel);
+      border:1px solid #dbe2ea;
+      border-radius:18px;
+      padding:14px;
+      box-shadow:0 10px 25px rgba(15,23,42,.06);
+    }
+
+    .toolbar button{
+      border:0;
+      border-radius:12px;
+      padding:11px 14px;
+      color:#fff;
+      background:var(--btn);
+      font-weight:700;
+      cursor:pointer;
+    }
+
+    .toolbar button.secondary{ background:var(--btn2); }
+    .toolbar button.success{ background:var(--accent); }
+    .toolbar button.danger{ background:var(--danger); }
+
+    .hint{
+      width:100%;
+      font-size:13px;
+      color:#475569;
+      margin-top:2px;
+    }
+
+    .page-wrap{
+      display:flex;
+      justify-content:center;
+      overflow:auto;
+    }
+
+    .page{
+      width:910px;
+      min-height:1123px;
+      background:#fff;
+      position:relative;
+      box-shadow:0 16px 40px rgba(15,23,42,.12);
+      padding:26px 16px 36px;
+    }
+
+    .pdf-exporting{ box-shadow:none; }
+
+    .header-box{
+      border:2px solid var(--line);
+      min-height:88px;
+      display:grid;
+      grid-template-columns:140px 1fr 140px;
+      align-items:center;
+      margin-bottom:32px;
+      padding:0 10px;
+      column-gap:10px;
+    }
+
+    .logo-left,
+    .logo-right{
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      min-height:74px;
+    }
+
+    .logo-left img{
+      max-width:98px;
+      max-height:46px;
+      object-fit:contain;
+      display:block;
+    }
+
+   .logo-right img{
+  width:100%;
+  max-width:120px;
+  height:auto;
+  object-fit:contain;
+  display:block;
+}
+
+    .title-box{
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      min-height:74px;
+      text-align:center;
+      font-size:17px;
+      font-weight:700;
+      color:#333;
+      line-height:1.08;
+      white-space:nowrap;
+      padding:0;
+      transform:none;
+    }
+
+    .top-fields{
+      margin-bottom:34px;
+      display:grid;
+      gap:18px;
+      max-width:560px;
+    }
+
+    .line-field{
+      display:flex;
+      align-items:center;
+      gap:4px;
+      font-size:22px;
+      color:#333;
+      line-height:1;
+      min-height:36px;
+    }
+
+    .line-field .label{ font-weight:700; }
+
+    .line-input{
+      border:0;
+      border-bottom:1px solid transparent;
+      outline:none;
+      font-size:22px;
+      font-family:Arial, Helvetica, sans-serif;
+      padding:3px 0 0;
+      color:#333;
+      background:transparent;
+      min-width:150px;
+      flex:1;
+      line-height:1;
+    }
+
+    .line-input:focus{ border-bottom:1px dashed #94a3b8; }
+
+    table{
+      width:100%;
+      border-collapse:collapse;
+      table-layout:fixed;
+      margin-bottom:24px;
+    }
+
+    th, td{
+      border:1.8px solid #222;
+      padding:0;
+      font-size:15px;
+      color:#161616;
+    }
+
+    th{
+      height:54px;
+      font-size:13px;
+      font-weight:400;
+      text-align:center;
+      vertical-align:middle;
+    }
+
+    td{
+      height:42px;
+      vertical-align:middle;
+    }
+
+    .col-item{ width:58px; text-align:center; }
+    .col-desc{ width:285px; }
+    .col-cumple{ width:130px; }
+    .col-obs{ width:auto; }
+
+    .item-num{
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      height:100%;
+      font-size:15px;
+    }
+
+    .desc-cell,
+    .obs-cell{
+      padding:0 8px;
+    }
+
+    .desc-wrap,
+    .obs-wrap{
+      display:flex;
+      align-items:center;
+      min-height:42px;
+      height:100%;
+    }
+
+    .desc-input,
+    .obs-input{
+      width:100%;
+      border:0;
+      outline:none;
+      font-size:15px;
+      font-family:Arial, Helvetica, sans-serif;
+      background:transparent;
+      color:#161616;
+      padding:0;
+      line-height:1.2;
+    }
+
+    .cumple-cell{
+      padding:3px;
+    }
+
+    .cumple-select{
+      width:100%;
+      height:34px;
+      border:0;
+      outline:none;
+      text-align:center;
+      text-align-last:center;
+      font-size:15px;
+      font-family:Arial, Helvetica, sans-serif;
+      font-weight:400;
+      background:var(--yes-bg);
+      color:var(--yes-text);
+      appearance:none;
+      -webkit-appearance:none;
+      -moz-appearance:none;
+      border-radius:0;
+      cursor:pointer;
+    }
+
+    .cumple-select.si{
+      background:var(--yes-bg);
+      color:var(--yes-text);
+    }
+
+    .cumple-select.no{
+      background:var(--no-bg);
+      color:var(--no-text);
+    }
+
+    .note{
+      margin-top:6px;
+      font-size:16px;
+      line-height:1.4;
+      font-style:italic;
+    }
+
+    .note strong{ font-style:normal; }
+
+    .sign-row{
+      margin-top:34px;
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:28px;
+      align-items:end;
+      font-size:18px;
+    }
+
+    .signature-line{
+      display:flex;
+      align-items:flex-end;
+      gap:0;
+      min-width:0;
+      padding-bottom:0;
+    }
+
+   .label-supervisor{
+  transform: translateY(-35px); /* sube solo este */
+}
+
+.label-firma{
+  transform: translateY(0px); /* o ajústala independiente */
+}
+
+    .signature-input{
+      flex:1;
+      border:0;
+      outline:none;
+      border-bottom:1.8px solid #000;
+      background:transparent;
+      font-size:18px;
+      padding:0 4px 2px;
+      min-width:0;
+
+      transform: translateY(-35px); /* 👈 ESTE ES EL AJUSTE REAL */
+}
+
+    .sign-block{
+      display:flex;
+      flex-direction:column;
+      gap:0;
+      justify-content:flex-end;
+      padding-bottom:0;
+    }
+
+    .sign-title{
+      font-size:18px;
+      line-height:1;
+      margin-bottom:-2px;
+    }
+
+    .signature-pad-wrap{
+      border-bottom:1.8px solid #000;
+      padding-bottom:0;
+      flex:1;
+    }
+
+    .signature-pad{
+      width:100%;
+      height:80px;
+      border:0;
+      display:block;
+      touch-action:none;
+      background:transparent;
+      cursor:crosshair;
+    }
+
+    .sign-actions{
+      display:flex;
+      justify-content:flex-end;
+      margin-top:6px;
+    }
+
+    .sign-actions button{
+      border:1px solid #cbd5e1;
+      background:#fff;
+      border-radius:8px;
+      padding:6px 10px;
+      font-size:12px;
+      cursor:pointer;
+    }
+
+    .mobile-panel{
+      display:none;
+      margin-top:14px;
+      padding:14px;
+      border:1px dashed #cbd5e1;
+      border-radius:14px;
+      background:#fff;
+      color:#475569;
+      font-size:13px;
+    }
+
+    @media (max-width: 980px){
+      .shell{ padding:12px; }
+      .mobile-panel{ display:block; }
+    }
+
+    @media print{
+      body{ background:#fff; }
+      .shell{ max-width:none; padding:0; }
+      .toolbar, .mobile-panel, .sign-actions{ display:none !important; }
+      .page{ box-shadow:none; margin:0; }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <div class="toolbar" id="toolbar">
+      <button class="success" onclick="guardarDatos()">Guardar</button>
+      <button class="secondary" onclick="cargarDatos()">Cargar</button>
+      <button class="secondary" onclick="limpiarFormulario()">Nuevo</button>
+      <button onclick="exportarPDF()">Exportar PDF</button>
+      <button class="secondary" onclick="compartirPDF()">Compartir PDF</button>
+      <button class="danger" onclick="window.print()">Imprimir</button>
+      <div class="hint">El formato quedó ajustado para que el PDF salga muy parecido al original, con logos, fecha automática, selector SI/NO por color y firma digital dibujada.</div>
+    </div>
+
+    <div class="mobile-panel">Puedes diligenciarlo desde celular o PC. La fecha aparece automática al abrir el archivo, pero la puedes editar. La firma se hace con el dedo o con el mouse.</div>
+
+    <div class="page-wrap">
+      <div class="page" id="pdfPage">
+        <div class="header-box">
+          <div class="logo-left">
+            <img alt="Logo Cerrejón" src="data:image/png;base64,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" />
+          </div>
+          <div class="title-box">Formato de Validacion y Aprobacion del Plan de Disparo</div>
+          <div class="logo-right">
+  <img src="logo2.png" alt="Logo SAFEWORK">
+</div>
+        </div>
+
+        <div class="top-fields">
+          <div class="line-field">
+            <span class="label">Tajo:</span>
+            <input id="tajo" class="line-input" type="text" value="" />
+          </div>
+          <div class="line-field">
+            <span class="label">Fecha:</span>
+            <input id="fechaTexto" class="line-input" type="text" value="" placeholder="dd/mm/aaaa" />
+          </div>
+          <div class="line-field">
+            <span class="label">Grupo/Turno:</span>
+            <input id="grupo" class="line-input" type="text" value="" />
+          </div>
+        </div>
+
+        <table>
+          <thead>
+            <tr>
+              <th class="col-item">Item</th>
+              <th class="col-desc">Descripción</th>
+              <th class="col-cumple">¿Cumple?<br>Si/No</th>
+              <th class="col-obs">Observacion</th>
+            </tr>
+          </thead>
+          <tbody id="tablaBody"></tbody>
+        </table>
+
+        <div class="note"><strong>Nota:</strong> No se aprueba el plan de disparo si algún ítem se encuentra en estado “ <strong>No cumple</strong> ”</div>
+
+        <div class="sign-row">
+          <div class="signature-line">
+            <label class="label-supervisor">Supervisor/Aprobador:</label>
+            <input id="supervisor" class="signature-input" type="text" />
+          </div>
+
+          <div class="sign-block">
+            <div class="signature-line">
+              <label class="label-firma">Firma</label>
+              <div class="signature-pad-wrap">
+                <canvas id="signaturePad" class="signature-pad"></canvas>
+              </div>
+            </div>
+            <div class="sign-actions">
+              <button type="button" onclick="limpiarFirma()">Limpiar firma</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const ITEMS = [
+      'Encabezado/Tajo',
+      'Palas',
+      'Fecha',
+      'Horario',
+      'Rangos de Influencia',
+      'Areas a Evacuar',
+      'Puntos de Bloqueo',
+      'Lugar y Hora de Reunión',
+      'Voladuras Cargadas',
+      'Voladuras a Disparar',
+      'Supervisor que elabora el plan',
+      'Supervisor que aprueba el plan',
+      'Tableros Actualizados',
+      'Banderas Izadas'
+    ];
+
+    const STORAGE_KEY = 'formatoPlanDisparoExactoV2';
+    let signaturePad, signatureCtx, isDrawing = false, hasSignature = false;
+
+    function buildRows(){
+      const tbody = document.getElementById('tablaBody');
+      tbody.innerHTML = '';
+      ITEMS.forEach((text, i) => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td class="col-item"><div class="item-num">${i + 1}</div></td>
+          <td class="desc-cell">
+            <div class="desc-wrap">
+              <input class="desc-input" data-desc="${i}" type="text" value="${text}">
+            </div>
+          </td>
+          <td class="cumple-cell">
+            <select class="cumple-select si" data-cumple="${i}" onchange="actualizarColorSelect(this)">
+              <option value="Si" selected>Si</option>
+              <option value="No">No</option>
+            </select>
+          </td>
+          <td class="obs-cell">
+            <div class="obs-wrap">
+              <input class="obs-input" data-obs="${i}" type="text">
+            </div>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function actualizarColorSelect(select){
+      if(select.value === 'No'){
+        select.classList.remove('si');
+        select.classList.add('no');
+      } else {
+        select.classList.remove('no');
+        select.classList.add('si');
+      }
+    }
+
+    function aplicarColoresSelects(){
+      document.querySelectorAll('.cumple-select').forEach(actualizarColorSelect);
+    }
+
+    function fechaActualTexto(){
+      const hoy = new Date();
+      const d = String(hoy.getDate()).padStart(2, '0');
+      const m = String(hoy.getMonth() + 1).padStart(2, '0');
+      const y = hoy.getFullYear();
+      return `${d}/${m}/${y}`;
+    }
+
+    function getData(){
+      return {
+        tajo: document.getElementById('tajo').value,
+        fechaTexto: document.getElementById('fechaTexto').value,
+        grupo: document.getElementById('grupo').value,
+        supervisor: document.getElementById('supervisor').value,
+        firmaDataUrl: hasSignature ? signaturePad.toDataURL('image/png') : '',
+        items: ITEMS.map((_, i) => ({
+          descripcion: document.querySelector(`[data-desc="${i}"]`).value,
+          cumple: document.querySelector(`[data-cumple="${i}"]`).value,
+          observacion: document.querySelector(`[data-obs="${i}"]`).value
+        }))
+      };
+    }
+
+    function setData(data){
+      if(!data) return;
+      document.getElementById('tajo').value = data.tajo || '';
+      document.getElementById('fechaTexto').value = data.fechaTexto || fechaActualTexto();
+      document.getElementById('grupo').value = data.grupo || '';
+      document.getElementById('supervisor').value = data.supervisor || '';
+
+      (data.items || []).forEach((row, i) => {
+        const d = document.querySelector(`[data-desc="${i}"]`);
+        const c = document.querySelector(`[data-cumple="${i}"]`);
+        const o = document.querySelector(`[data-obs="${i}"]`);
+        if(d) d.value = row.descripcion || '';
+        if(c) c.value = row.cumple || 'Si';
+        if(o) o.value = row.observacion || '';
+      });
+      aplicarColoresSelects();
+
+      if(data.firmaDataUrl){
+        cargarFirmaDesdeDataUrl(data.firmaDataUrl);
+      } else {
+        limpiarFirma();
+      }
+    }
+
+    function guardarDatos(){
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(getData()));
+      alert('Formato guardado en este dispositivo.');
+    }
+
+    function cargarDatos(){
+      const data = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null');
+      if(!data){
+        alert('No hay información guardada.');
+        return;
+      }
+      setData(data);
+      alert('Información cargada correctamente.');
+    }
+
+    function limpiarFormulario(){
+      if(!confirm('¿Deseas limpiar el formato?')) return;
+      localStorage.removeItem(STORAGE_KEY);
+      buildRows();
+      aplicarColoresSelects();
+      document.getElementById('tajo').value = '';
+      document.getElementById('fechaTexto').value = fechaActualTexto();
+      document.getElementById('grupo').value = '';
+      document.getElementById('supervisor').value = '';
+      limpiarFirma();
+    }
+
+    function initSignaturePad(){
+      signaturePad = document.getElementById('signaturePad');
+      signatureCtx = signaturePad.getContext('2d');
+      resizeSignatureCanvas();
+
+      signatureCtx.lineWidth = 2;
+      signatureCtx.lineCap = 'round';
+      signatureCtx.lineJoin = 'round';
+      signatureCtx.strokeStyle = '#111';
+
+      signaturePad.addEventListener('pointerdown', startDraw);
+      signaturePad.addEventListener('pointermove', draw);
+      window.addEventListener('pointerup', endDraw);
+      window.addEventListener('resize', onResizeKeepSignature);
+    }
+
+    function resizeSignatureCanvas(savedImage){
+      const ratio = Math.max(window.devicePixelRatio || 1, 1);
+      const rect = signaturePad.getBoundingClientRect();
+      const temp = savedImage || (hasSignature ? signaturePad.toDataURL('image/png') : null);
+      signaturePad.width = Math.floor(rect.width * ratio);
+      signaturePad.height = Math.floor(rect.height * ratio);
+      signatureCtx = signaturePad.getContext('2d');
+      signatureCtx.setTransform(1, 0, 0, 1, 0, 0);
+      signatureCtx.scale(ratio, ratio);
+      signatureCtx.lineWidth = 2;
+      signatureCtx.lineCap = 'round';
+      signatureCtx.lineJoin = 'round';
+      signatureCtx.strokeStyle = '#111';
+      signatureCtx.clearRect(0, 0, rect.width, rect.height);
+      if(temp){
+        const img = new Image();
+        img.onload = () => {
+          signatureCtx.drawImage(img, 0, 0, rect.width, rect.height);
+        };
+        img.src = temp;
+      }
+    }
+
+    function onResizeKeepSignature(){
+      const temp = hasSignature ? signaturePad.toDataURL('image/png') : null;
+      resizeSignatureCanvas(temp);
+    }
+
+    function getPoint(e){
+      const rect = signaturePad.getBoundingClientRect();
+      return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+    }
+
+    function startDraw(e){
+      isDrawing = true;
+      const p = getPoint(e);
+      signatureCtx.beginPath();
+      signatureCtx.moveTo(p.x, p.y);
+      hasSignature = true;
+      e.preventDefault();
+    }
+
+    function draw(e){
+      if(!isDrawing) return;
+      const p = getPoint(e);
+      signatureCtx.lineTo(p.x, p.y);
+      signatureCtx.stroke();
+      e.preventDefault();
+    }
+
+    function endDraw(){
+      isDrawing = false;
+    }
+
+    function limpiarFirma(){
+      const rect = signaturePad.getBoundingClientRect();
+      signatureCtx.clearRect(0, 0, rect.width, rect.height);
+      hasSignature = false;
+    }
+
+    function cargarFirmaDesdeDataUrl(dataUrl){
+      limpiarFirma();
+      if(!dataUrl) return;
+      const rect = signaturePad.getBoundingClientRect();
+      const img = new Image();
+      img.onload = () => {
+        signatureCtx.drawImage(img, 0, 0, rect.width, rect.height);
+        hasSignature = true;
+      };
+      img.src = dataUrl;
+    }
+
+    async function renderCanvas(){
+      const page = document.getElementById('pdfPage');
+      page.classList.add('pdf-exporting');
+      const canvas = await html2canvas(page, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: '#ffffff',
+        width: page.offsetWidth,
+        height: page.offsetHeight,
+        scrollX: 0,
+        scrollY: 0
+      });
+      page.classList.remove('pdf-exporting');
+      return canvas;
+    }
+
+    async function generarPdfBlob(){
+      const canvas = await renderCanvas();
+      const imgData = canvas.toDataURL('image/png');
+      const { jsPDF } = window.jspdf;
+      const pdf = new jsPDF({ orientation:'p', unit:'pt', format:'a4' });
+      const pageW = pdf.internal.pageSize.getWidth();
+      const pageH = pdf.internal.pageSize.getHeight();
+      pdf.addImage(imgData, 'PNG', 0, 0, pageW, pageH, undefined, 'FAST');
+      return pdf.output('blob');
+    }
+
+    async function exportarPDF(){
+      try{
+        const blob = await generarPdfBlob();
+        const a = document.createElement('a');
+        const url = URL.createObjectURL(blob);
+        const name = `Formato_Plan_Disparo_${(document.getElementById('tajo').value || 'sin_tajo').replace(/\s+/g,'_')}.pdf`;
+        a.href = url;
+        a.download = name;
+        a.click();
+        setTimeout(() => URL.revokeObjectURL(url), 1500);
+      }catch(err){
+        console.error(err);
+        alert('No fue posible exportar el PDF.');
+      }
+    }
+
+    async function compartirPDF(){
+      try{
+        const blob = await generarPdfBlob();
+        const filename = `Formato_Plan_Disparo_${(document.getElementById('tajo').value || 'sin_tajo').replace(/\s+/g,'_')}.pdf`;
+        const file = new File([blob], filename, { type:'application/pdf' });
+        if(navigator.canShare && navigator.canShare({ files:[file] })){
+          await navigator.share({
+            title: 'Formato de Validación y Aprobación del Plan de Disparo',
+            files: [file]
+          });
+        }else{
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = filename;
+          a.click();
+          setTimeout(() => URL.revokeObjectURL(url), 1500);
+          alert('Tu navegador no permite compartir el archivo directamente. Se descargó el PDF para compartirlo manualmente.');
+        }
+      }catch(err){
+        console.error(err);
+        alert('No fue posible compartir el PDF.');
+      }
+    }
+
+    buildRows();
+    document.getElementById('fechaTexto').value = fechaActualTexto();
+    initSignaturePad();
+    aplicarColoresSelects();
+  </script>
+</body>
+</html>
