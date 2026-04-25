@@ -238,6 +238,15 @@
       line-height:1.2;
     }
 
+    .obs-input{
+      display:block;
+      min-height:34px;
+      overflow:hidden;
+      resize:none;
+      white-space:pre-wrap;
+      overflow-wrap:anywhere;
+    }
+
     .cumple-cell{
       padding:3px;
     }
@@ -625,6 +634,11 @@
     const STORAGE_KEY = 'formatoPlanDisparoExactoV2';
     let signaturePad, signatureCtx, isDrawing = false, hasSignature = false;
 
+    function autoResizeObservacion(el){
+      el.style.height = 'auto';
+      el.style.height = el.scrollHeight + 'px';
+    }
+
     function buildRows(){
       const tbody = document.getElementById('tablaBody');
       tbody.innerHTML = '';
@@ -645,7 +659,7 @@
           </td>
           <td class="obs-cell">
             <div class="obs-wrap">
-              <input class="obs-input" data-obs="${i}" type="text">
+              <textarea class="obs-input" data-obs="${i}" rows="1" oninput="autoResizeObservacion(this)"></textarea>
             </div>
           </td>
         `;
@@ -703,7 +717,10 @@
         const o = document.querySelector(`[data-obs="${i}"]`);
         if(d) d.value = row.descripcion || '';
         if(c) c.value = row.cumple || 'Si';
-        if(o) o.value = row.observacion || '';
+        if(o){
+          o.value = row.observacion || '';
+          autoResizeObservacion(o);
+        }
       });
       aplicarColoresSelects();
 
@@ -884,6 +901,7 @@
 
 
     buildRows();
+    document.querySelectorAll('.obs-input').forEach(autoResizeObservacion);
     document.getElementById('fechaTexto').value = fechaActualTexto();
     initSignaturePad();
     aplicarColoresSelects();
