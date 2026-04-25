@@ -363,7 +363,7 @@
     }
 
     .mobile-panel{
-      display:none;
+      display:block;
       margin-top:14px;
       padding:14px;
       border:1px dashed #cbd5e1;
@@ -373,9 +373,88 @@
       font-size:13px;
     }
 
+
+    .splash-screen{
+      position:fixed;
+      inset:0;
+      z-index:9999;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:18px;
+      background:linear-gradient(135deg,#0f766e 0%,#14532d 50%,#facc15 100%);
+    }
+
+    .splash-card{
+      width:min(880px, 96vw);
+      min-height:280px;
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      justify-content:center;
+      text-align:center;
+      color:white;
+      padding:34px 28px;
+      border-radius:26px;
+      border:3px solid #facc15;
+      background:#0f172a;
+      box-shadow:0 24px 60px rgba(0,0,0,.35);
+    }
+
+    .splash-card h1{
+      margin:0 0 26px;
+      font-size:30px;
+      line-height:1.18;
+      font-weight:900;
+      letter-spacing:.2px;
+    }
+
+    .splash-card button{
+      border:0;
+      border-radius:999px;
+      padding:15px 42px;
+      color:#0f172a;
+      background:#facc15;
+      font-weight:900;
+      cursor:pointer;
+      box-shadow:0 10px 24px rgba(250,204,21,.25);
+      margin-bottom:22px;
+    }
+
+    .splash-card p{
+      margin:3px 0;
+      font-size:15px;
+      line-height:1.25;
+      color:#fff;
+    }
+
+    .splash-card .copy{
+      color:#fef3c7;
+      font-size:14px;
+    }
+
     @media (max-width: 980px){
-      .shell{ padding:12px; }
+      .shell{ padding:10px; }
+      .toolbar{
+        position:sticky;
+        top:0;
+        z-index:20;
+        justify-content:center;
+        border-radius:0 0 18px 18px;
+      }
+      .toolbar button{
+        flex:1 1 44%;
+        padding:12px 8px;
+        font-size:14px;
+      }
       .mobile-panel{ display:block; }
+      .page-wrap{
+        justify-content:flex-start;
+        overflow:hidden;
+      }
+      .page{
+        transform-origin:top left;
+      }
     }
 
     @media print{
@@ -387,15 +466,21 @@
   </style>
 </head>
 <body>
+  <div id="splashScreen" class="splash-screen">
+    <div class="splash-card">
+      <h1>Formato de Validación y Aprobación del Plan de Disparo</h1>
+      <button onclick="entrarApp()">ENTRAR</button>
+      <p>A product by <strong>Datappia</strong></p>
+      <p class="copy">© 2026 Alvaro Ariza</p>
+    </div>
+  </div>
   <div class="shell">
     <div class="toolbar" id="toolbar">
       <button class="success" onclick="guardarDatos()">Guardar</button>
       <button class="secondary" onclick="cargarDatos()">Cargar</button>
       <button class="secondary" onclick="limpiarFormulario()">Nuevo</button>
       <button onclick="exportarPDF()">Exportar PDF</button>
-      <button class="secondary" onclick="compartirPDF()">Compartir PDF</button>
       <button class="danger" onclick="window.print()">Imprimir</button>
-      <div class="hint">El formato quedó ajustado para que el PDF salga muy parecido al original, con logos, fecha automática, selector SI/NO por color y firma digital dibujada.</div>
     </div>
 
     <div class="mobile-panel">Puedes diligenciarlo desde celular o PC. La fecha aparece automática al abrir el archivo, pero la puedes editar. La firma se hace con el dedo o con el mouse.</div>
@@ -464,6 +549,27 @@
   </div>
 
   <script>
+    function entrarApp(){
+      document.getElementById('splashScreen').style.display = 'none';
+      ajustarVistaMovil();
+      setTimeout(onResizeKeepSignature, 100);
+    }
+
+    function ajustarVistaMovil(){
+      const page = document.getElementById('pdfPage');
+      const wrap = document.querySelector('.page-wrap');
+      if(!page || !wrap) return;
+
+      if(window.innerWidth <= 980){
+        const scale = Math.min(1, (window.innerWidth - 20) / 910);
+        page.style.transform = `scale(${scale})`;
+        wrap.style.height = `${page.offsetHeight * scale}px`;
+      }else{
+        page.style.transform = '';
+        wrap.style.height = '';
+      }
+    }
+
     const ITEMS = [
       'Encabezado/Tajo',
       'Palas',
@@ -690,7 +796,14 @@
 
     async function renderCanvas(){
       const page = document.getElementById('pdfPage');
+      const wrap = document.querySelector('.page-wrap');
+      const oldTransform = page.style.transform;
+      const oldHeight = wrap.style.height;
+
+      page.style.transform = 'none';
+      wrap.style.height = '';
       page.classList.add('pdf-exporting');
+
       const canvas = await html2canvas(page, {
         scale: 2,
         useCORS: true,
@@ -700,7 +813,10 @@
         scrollX: 0,
         scrollY: 0
       });
+
       page.classList.remove('pdf-exporting');
+      page.style.transform = oldTransform;
+      wrap.style.height = oldHeight;
       return canvas;
     }
 
@@ -731,35 +847,13 @@
       }
     }
 
-    async function compartirPDF(){
-      try{
-        const blob = await generarPdfBlob();
-        const filename = `Formato_Plan_Disparo_${(document.getElementById('tajo').value || 'sin_tajo').replace(/\s+/g,'_')}.pdf`;
-        const file = new File([blob], filename, { type:'application/pdf' });
-        if(navigator.canShare && navigator.canShare({ files:[file] })){
-          await navigator.share({
-            title: 'Formato de Validación y Aprobación del Plan de Disparo',
-            files: [file]
-          });
-        }else{
-          const url = URL.createObjectURL(blob);
-          const a = document.createElement('a');
-          a.href = url;
-          a.download = filename;
-          a.click();
-          setTimeout(() => URL.revokeObjectURL(url), 1500);
-          alert('Tu navegador no permite compartir el archivo directamente. Se descargó el PDF para compartirlo manualmente.');
-        }
-      }catch(err){
-        console.error(err);
-        alert('No fue posible compartir el PDF.');
-      }
-    }
 
     buildRows();
     document.getElementById('fechaTexto').value = fechaActualTexto();
     initSignaturePad();
     aplicarColoresSelects();
+    ajustarVistaMovil();
+    window.addEventListener('resize', ajustarVistaMovil);
   </script>
 </body>
 </html>
