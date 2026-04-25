@@ -245,6 +245,25 @@
       resize:none;
       white-space:pre-wrap;
       overflow-wrap:anywhere;
+      word-break:break-word;
+      line-break:anywhere;
+    }
+
+    .obs-print-text{
+      width:100%;
+      min-height:34px;
+      border:0;
+      outline:none;
+      font-size:15px;
+      font-family:Arial, Helvetica, sans-serif;
+      background:transparent;
+      color:#161616;
+      padding:0;
+      line-height:1.2;
+      white-space:pre-wrap;
+      overflow-wrap:anywhere;
+      word-break:break-word;
+      line-break:anywhere;
     }
 
     .cumple-cell{
@@ -659,7 +678,7 @@
           </td>
           <td class="obs-cell">
             <div class="obs-wrap">
-              <textarea class="obs-input" data-obs="${i}" rows="1" oninput="autoResizeObservacion(this)"></textarea>
+              <textarea class="obs-input" data-obs="${i}" rows="1" wrap="soft" oninput="autoResizeObservacion(this)"></textarea>
             </div>
           </td>
         `;
@@ -846,6 +865,29 @@
       img.src = dataUrl;
     }
 
+    function prepararObservacionesParaPDF(){
+      const elementos = [];
+      document.querySelectorAll('.obs-input').forEach((textarea) => {
+        autoResizeObservacion(textarea);
+
+        const div = document.createElement('div');
+        div.className = 'obs-print-text';
+        div.textContent = textarea.value;
+        div.style.minHeight = textarea.offsetHeight + 'px';
+
+        textarea.style.display = 'none';
+        textarea.parentNode.insertBefore(div, textarea.nextSibling);
+        elementos.push({ textarea, div });
+      });
+
+      return function restaurarObservaciones(){
+        elementos.forEach(({ textarea, div }) => {
+          textarea.style.display = '';
+          div.remove();
+        });
+      };
+    }
+
     async function renderCanvas(){
       const page = document.getElementById('pdfPage');
       const wrap = document.querySelector('.page-wrap');
@@ -855,6 +897,8 @@
       page.style.transform = 'none';
       wrap.style.height = '';
       page.classList.add('pdf-exporting');
+
+      const restaurarObservaciones = prepararObservacionesParaPDF();
 
       const canvas = await html2canvas(page, {
         scale: 2,
@@ -866,6 +910,7 @@
         scrollY: 0
       });
 
+      restaurarObservaciones();
       page.classList.remove('pdf-exporting');
       page.style.transform = oldTransform;
       wrap.style.height = oldHeight;
